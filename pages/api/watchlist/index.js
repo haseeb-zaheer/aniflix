@@ -1,3 +1,5 @@
+// POST req to add an anime to the userlist
+
 import axios from "axios";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]";

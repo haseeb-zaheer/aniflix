@@ -1,3 +1,5 @@
+// OAuth2.0 implementation for google signin
+
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import clientPromise from "@/lib/mongodb"; 
@@ -47,7 +49,8 @@ export const authOptions = {
                 userId: userId,
                 email: user.email,
                 name: user.name,
-                image: user.image
+                image: user.image,
+                username: null
             };
             
             console.log("Inserting user with userId:", userId);

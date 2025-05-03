@@ -1,3 +1,5 @@
+// Search Anime API
+
 import axios from "axios";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]";
