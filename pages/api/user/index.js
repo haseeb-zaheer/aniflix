@@ -8,6 +8,7 @@ export default async function handler(req, res)
     const session = await getServerSession(req, res, authOptions);
     if(!session)
         return res.status(401).json({message: "User not logged in"});
+    
     if(req.method==='GET')
     {
         try{

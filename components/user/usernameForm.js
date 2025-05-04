@@ -17,7 +17,7 @@ export default function UsernameForm() {
 
     if (response.ok) {
       setMessage("Username saved!");
-      // redirect here once page is made
+      // redirect to home page once made
     } else {
       const data = await response.json();
       setMessage(data.error || "Failed to set username");

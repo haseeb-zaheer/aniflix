@@ -16,7 +16,7 @@ export const authOptions = {
     // Called when a user signs in for the first time (or every time)
     async signIn({ user }) {
     try {
-        console.log("SIGNIN triggered for:", user.email);
+        console.log("Signin triggered for:", user.email);
     
         const client = await clientPromise;
         const db = client.db("AniDB"); 

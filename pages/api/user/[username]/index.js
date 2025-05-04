@@ -13,7 +13,8 @@ export default async function handler(req, res)
     {
         try{
             const username = req.query.username;
-            console.log(username);
+            console.log(`Username: ${username}`);
+            
             const client = await clientPromise;
             const db = client.db("AniDB");
             const users = db.collection("users");
