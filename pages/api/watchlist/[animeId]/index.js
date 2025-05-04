@@ -1,4 +1,4 @@
-// add an anime to user watchlist
+// POST an anime to user watchlist
 
 import clientPromise from "@/lib/mongodb";
 import { getServerSession } from "next-auth";

@@ -1,4 +1,4 @@
-// POST req to add an anime to the userlist
+// GET req to get user watch list
 
 import axios from "axios";
 import { getServerSession } from "next-auth";
