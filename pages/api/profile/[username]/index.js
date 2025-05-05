@@ -1,3 +1,5 @@
+// sets username for profile
+
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]";
 import clientPromise from "@/lib/mongodb";
@@ -17,18 +19,19 @@ export default async function handler(req, res)
             
             const client = await clientPromise;
             const db = client.db("AniDB");
-            const users = db.collection("users");
+            const profiles = db.collection("profiles");
+
     
-            const currentUser = await users.findOne({email: session.user.email});
-            if (!currentUser)
+            const userProfile = await profiles.findOne({userId: session.user.id});
+            if (!userProfile)
                 return res.status(404).json({ error: "User not found" });
 
-            const taken = await users.findOne({ username });
+            const taken = await profiles.findOne({ username });
             if (taken) 
                 return res.status(409).json({ error: "Username already taken" });
             
-            await users.updateOne(
-                { email: session.user.email },
+            await profiles.updateOne(
+                { userId: session.user.id },
                 { $set:  {username: username}  }
             );
 
@@ -36,12 +39,12 @@ export default async function handler(req, res)
         }
         catch(error)
         {
-            console.error("PATCH /api/user/username error:", error);
+            console.error("PATCH /api/profile/username error:", error);
             return res.status(500).json({ error: "Server error" });   
         }
     }
     else {
-        res.setHeader('Allow', ['GET']);
+        res.setHeader('Allow', ['PATCH']);
         res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 }

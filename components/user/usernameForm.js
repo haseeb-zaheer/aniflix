@@ -9,7 +9,7 @@ export default function UsernameForm() {
   async function handleSubmit(e) {
     e.preventDefault();
 
-    const response = await fetch(`/api/user/${username}`, {
+    const response = await fetch(`/api/profile/${username}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username }),
@@ -17,6 +17,7 @@ export default function UsernameForm() {
 
     if (response.ok) {
       setMessage("Username saved!");
+      router.reload();
       // redirect to home page once made
     } else {
       const data = await response.json();

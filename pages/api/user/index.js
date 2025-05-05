@@ -1,4 +1,5 @@
 // sends back user
+
 import clientPromise from "@/lib/mongodb";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]";
@@ -18,9 +19,9 @@ export default async function handler(req, res)
             const db = client.db("AniDB");
             const users = db.collection("users");
             
-            const userEmail = session.user.email;
+            const userId = session.user.id;
 
-            const existingUser = await users.findOne({email: userEmail});
+            const existingUser = await users.findOne({userId: userId});
             console.log(existingUser);
             return res.status(200).json(existingUser);
         }catch(error)

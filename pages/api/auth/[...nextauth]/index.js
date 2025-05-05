@@ -22,7 +22,8 @@ export const authOptions = {
         const db = client.db("AniDB"); 
         const users = db.collection("users");
         const counters = db.collection("counters");
-    
+        const profiles = db.collection("profiles");
+
         const existingUser = await users.findOne({ email: user.email });
         console.log("Existing user:", existingUser);
     
@@ -50,11 +51,21 @@ export const authOptions = {
                 email: user.email,
                 name: user.name,
                 image: user.image,
-                username: null
             };
+
+            const newProfile = {
+              userId: userId,
+              username: null,
+              profilePicture: user.image || "/defaults/profile.jpg",
+              bannerImage: "/defaults/banner.jpg",
+              description: "",
+              totalAnimeWatched: 0,
+              updatedAt: new Date()
+            }
             
             console.log("Inserting user with userId:", userId);
-            await users.insertOne(newUser);              
+            await users.insertOne(newUser);    
+            await profiles.insertOne(newProfile);
         }
     
         return true;
