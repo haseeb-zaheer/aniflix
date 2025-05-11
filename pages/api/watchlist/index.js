@@ -1,6 +1,5 @@
 // GET req to get user watch list
 
-import axios from "axios";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]";
 import clientPromise from "@/lib/mongodb";
@@ -33,6 +32,4 @@ export default async function handler(req, res)
         res.setHeader('Allow', ['GET']);
         res.status(405).end(`Method ${req.method} Not Allowed`);
     }
-
-    
 }

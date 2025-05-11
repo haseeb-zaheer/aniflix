@@ -24,3 +24,18 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@layer components {
+  .netflix-red {
+    background-color: #e50914;
+  }
+  .netflix-red-hover:hover {
+    background-color: #b20710;
+  }
+  .netflix-dark {
+    background-color: #141414;
+  }
+  .netflix-gray {
+    background-color: #2F2F2F;
+  }
+}
