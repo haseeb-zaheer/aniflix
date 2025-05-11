@@ -58,9 +58,7 @@ export default function Browse() {
       <Navbar />
 
       <div className="container mx-auto px-4 pt-24 flex gap-8">
-        {/* Sidebar */}
         <aside className="w-full md:w-1/4">
-          {/* Search */}
           <div className="mb-6">
             <input
               type="text"
@@ -71,7 +69,6 @@ export default function Browse() {
             />
           </div>
 
-          {/* Genre Filters */}
           <div className="mb-12">
             <h2 className="text-white text-xl font-bold mb-4">Genres</h2>
             <div className="flex flex-wrap gap-3">
@@ -95,7 +92,6 @@ export default function Browse() {
           </div>
         </aside>
 
-        {/* Main Section */}
         <main className="flex-1">
           <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
             <h2 className="text-white text-2xl font-bold">

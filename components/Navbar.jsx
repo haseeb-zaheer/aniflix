@@ -18,7 +18,6 @@ export default function Navbar() {
   return (
     <nav className="netflix-dark fixed w-full z-50 top-0 border-b border-red-900">
       <div className="container mx-auto flex justify-between items-center px-4 py-3">
-        {/* Logo Link */}
         <Link href="/" className="flex items-center space-x-2 ml-8">
         <Image
           src="/aniflix-logo.png"

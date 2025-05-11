@@ -10,17 +10,31 @@ const statusLabels = {
 };
 
 export default function AnimeEditModal({ anime, onClose, onSave }) {
-  const [status, setStatus] = useState(anime.status || 'plan-to-watch');
-  const [rating, setRating] = useState(anime.rating || 0);
-  const [watched, setWatched] = useState(anime.watched || 0);
-  const [releaseDate, setReleaseDate] = useState(anime.releaseDate || null);
-  const [hasReleased, setHasReleased] = useState(anime.hasReleased ?? true);
-  const [loading, setLoading] = useState(releaseDate === null); // if releaseDate not passed, set loading
+  const [status, setStatus] = useState('plan-to-watch');
+  const [rating, setRating] = useState(0);
+  const [watched, setWatched] = useState(0);
+  const [releaseDate, setReleaseDate] = useState(null);
+  const [hasReleased, setHasReleased] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (releaseDate !== null) return;
+    const fetchModalData = async () => {
+      setLoading(true);
+      try {
+        const dbRes = await fetch(`/api/watchlist/${anime.id}`);
+        const dbData = await dbRes.json();
 
-    const getReleaseInfo = async () => {
+        if (dbData.anime) {
+          setStatus(dbData.anime.status || 'plan-to-watch');
+          setRating(dbData.anime.userScore || 0);
+          setWatched(dbData.anime.episodesWatched || 0);
+        } else {
+          console.log('[AnimeEditModal] No DB entry, using defaults');
+        }
+      } catch (err) {
+        console.error('[AnimeEditModal] Failed to fetch DB data:', err);
+      }
+
       try {
         const res = await fetch(`/api/anime/${anime.id}`);
         const data = await res.json();
@@ -37,16 +51,17 @@ export default function AnimeEditModal({ anime, onClose, onSave }) {
         setReleaseDate(formatted);
         setHasReleased(released);
       } catch (err) {
+        console.error('[AnimeEditModal] Failed to fetch release date:', err);
         toast.error('Could not fetch release date');
         setReleaseDate('Unknown');
         setHasReleased(true);
-      } finally {
-        setLoading(false);
       }
+
+      setLoading(false);
     };
 
-    getReleaseInfo();
-  }, [anime.id, releaseDate]);
+    fetchModalData();
+  }, [anime.id]);
 
   const handleSave = async () => {
     if (
@@ -56,7 +71,15 @@ export default function AnimeEditModal({ anime, onClose, onSave }) {
       toast.error('This anime has not released yet. Only "Plan to Watch" is allowed.');
       return;
     }
-
+  
+    let episodesToPost = watched;
+  
+    if (status === 'completed') {
+      episodesToPost = anime.episodes || 0;
+    } else if (status === 'plan-to-watch') {
+      episodesToPost = 0;
+    }
+  
     try {
       const res = await fetch(`/api/watchlist/${anime.id}`, {
         method: 'POST',
@@ -67,13 +90,14 @@ export default function AnimeEditModal({ anime, onClose, onSave }) {
           totalEpisodes: anime.episodes || 0,
           status,
           userScore: rating,
-          episodesWatched: watched
+          episodesWatched: episodesToPost
         })
       });
-
+  
       const result = await res.json();
-      if (!res.ok) throw new Error(result.message || 'Update failed');
-
+      if (!res.ok) 
+        throw new Error(result.message || 'Update failed');
+  
       toast.success('Watchlist updated!');
       onSave?.();
       onClose();
@@ -81,10 +105,11 @@ export default function AnimeEditModal({ anime, onClose, onSave }) {
       toast.error(`Error: ${err.message}`);
     }
   };
+  
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-70 flex items-center justify-center px-4">
-      <div className="netflix-gray/90 p-6 rounded-lg w-full max-w-lg text-white relative">
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4">
+      <div className="bg-black p-6 rounded-lg w-full max-w-lg text-white relative shadow-lg">
         <button
           className="absolute top-2 right-3 text-gray-300 hover:text-white text-xl"
           onClick={onClose}
@@ -100,7 +125,7 @@ export default function AnimeEditModal({ anime, onClose, onSave }) {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
             </svg>
-            <span>Loading release info...</span>
+            <span>Loading anime info...</span>
           </div>
         ) : (
           <>
@@ -120,7 +145,7 @@ export default function AnimeEditModal({ anime, onClose, onSave }) {
             <label className="block mb-2">
               Status:
               <select
-                className="w-full mt-1 p-2 netflix-gray text-white rounded"
+                className="w-full mt-1 p-2 bg-gray-800 text-white rounded"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
               >
@@ -140,7 +165,7 @@ export default function AnimeEditModal({ anime, onClose, onSave }) {
               Episodes Watched:
               <input
                 type="number"
-                className="w-full mt-1 p-2 netflix-gray text-white rounded"
+                className="w-full mt-1 p-2 bg-gray-800 text-white rounded"
                 value={watched}
                 onChange={(e) => setWatched(Number(e.target.value))}
                 min={0}
@@ -152,7 +177,7 @@ export default function AnimeEditModal({ anime, onClose, onSave }) {
               Rating (out of 10):
               <input
                 type="number"
-                className="w-full mt-1 p-2 netflix-gray text-white rounded"
+                className="w-full mt-1 p-2 bg-gray-800 text-white rounded"
                 value={rating}
                 onChange={(e) => setRating(Number(e.target.value))}
                 min={0}

@@ -39,7 +39,8 @@ export default async function handler(req, res) {
         })
       });
 
-      if (!response.ok) throw new Error("AniList API error");
+      if (!response.ok) 
+        throw new Error("AniList API error");
 
       const result = await response.json();
       const popularAnime = result.data.Page.media;

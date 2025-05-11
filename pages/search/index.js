@@ -84,7 +84,6 @@ export default function SearchPage() {
               ))}
             </div>
 
-            {/* Pagination Controls */}
             <div className="flex justify-center items-center space-x-4">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}

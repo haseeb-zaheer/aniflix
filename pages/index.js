@@ -3,21 +3,23 @@ import Navbar from '@/components/Navbar';
 import AnimeCard from '@/components/AnimeCard';
 import AnimeEditModal from '@/components/AnimeEditModal';
 import getCurrentSeasonAndYear from '@/utils/currentDate';
+import Image from 'next/image';
 
 export default function Home({ mostLiked, currentlyAiring }) {
   const [selectedAnime, setSelectedAnime] = useState(null);
-
+  
   return (
     <div className="netflix-dark min-h-screen">
       <Navbar />
 
       <main className="pt-20 px-4 md:px-12">
-        {/* Hero Section */}
         <div className="relative h-96 rounded-lg overflow-hidden mb-12">
-          <img
+          <Image
             src="/demon1.jpeg"
-            className="w-full h-full object-cover"
+            fill
             alt="Hero Banner"
+            className="object-cover"
+            priority
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent p-8 flex items-center">
             <div className="max-w-2xl">
@@ -48,7 +50,6 @@ export default function Home({ mostLiked, currentlyAiring }) {
           </div>
         </div>
 
-        {/* Popular Anime Section */}
         <section className="mb-12">
           <h2 className="text-white text-2xl font-bold mb-6">Popular Anime</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -77,7 +78,6 @@ export default function Home({ mostLiked, currentlyAiring }) {
           </div>
         </section>
 
-        {/* Currently Airing Anime */}
         <section className="mb-12">
           <h2 className="text-white text-2xl font-bold mb-6">
             Currently Airing Anime
@@ -113,7 +113,7 @@ export default function Home({ mostLiked, currentlyAiring }) {
         <AnimeEditModal
           anime={selectedAnime}
           onClose={() => setSelectedAnime(null)}
-          onSave={() => setSelectedAnime(null)} // no fetch needed here
+          onSave={() => setSelectedAnime(null)} 
         />
       )}
     </div>

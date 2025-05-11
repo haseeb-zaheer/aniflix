@@ -12,7 +12,7 @@ export default function handler(req, res) {
   }
 
   const timestamp = Math.round(Date.now() / 1000);
-  const folder = 'aniflix/profiles'; // your desired folder
+  const folder = 'aniflix/profiles'; 
 
   const signature = cloudinary.utils.api_sign_request(
     { timestamp, folder },

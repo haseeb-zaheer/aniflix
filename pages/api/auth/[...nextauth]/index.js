@@ -13,7 +13,6 @@ export const authOptions = {
   ],
 
   callbacks: {
-    // Called when a user signs in for the first time (or every time)
     async signIn({ user }) {
     try {
         console.log("Signin triggered for:", user.email);
@@ -38,7 +37,6 @@ export const authOptions = {
                 );
             console.log(JSON.stringify(counterResult, null, 2));
             
-            // Safe fallback
             const sequence = counterResult.sequence_value;
             
             if (!sequence)
@@ -56,8 +54,8 @@ export const authOptions = {
             const newProfile = {
               userId: userId,
               username: null,
-              profilePicture: user.image || "/defaults/profile.jpg",
-              bannerImage: "/defaults/banner.jpg",
+              profilePicture: "/profile.jpg",
+              bannerImage: "/banner.jpg",
               description: "",
               totalAnimeWatched: 0,
               updatedAt: new Date()
@@ -75,7 +73,6 @@ export const authOptions = {
         }
     },
 
-    // Called when the JWT is created or updated
     async jwt({ token, user }) {
       if (user) {
         const client = await clientPromise;
@@ -89,7 +86,6 @@ export const authOptions = {
       return token;
     },
 
-    // Called whenever session is accessedc, gives userID
     async session({ session, token }) {
       session.user.id = token.userId; 
       return session;

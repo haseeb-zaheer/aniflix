@@ -2,12 +2,12 @@
 const nextConfig = {
 
   images: {
-    domains: ['res.cloudinary.com'],
+    domains: ['res.cloudinary.com', 's4.anilist.co'],
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'cdn.myanimelist.net',
-        pathname: '/images/**', // allow all images under /images/
+        pathname: '/images/**', 
       },
     ],
   },
