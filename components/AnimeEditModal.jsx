@@ -145,7 +145,7 @@ export default function AnimeEditModal({ anime, onClose, onSave }) {
             <label className="block mb-2">
               Status:
               <select
-                className="w-full mt-1 p-2 bg-gray-800 text-white rounded"
+                className="w-full mt-1 p-2 netflix-gray text-white rounded"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
               >
@@ -165,7 +165,7 @@ export default function AnimeEditModal({ anime, onClose, onSave }) {
               Episodes Watched:
               <input
                 type="number"
-                className="w-full mt-1 p-2 bg-gray-800 text-white rounded"
+                className="w-full mt-1 p-2 netflix-gray text-white rounded"
                 value={watched}
                 onChange={(e) => setWatched(Number(e.target.value))}
                 min={0}
@@ -177,7 +177,7 @@ export default function AnimeEditModal({ anime, onClose, onSave }) {
               Rating (out of 10):
               <input
                 type="number"
-                className="w-full mt-1 p-2 bg-gray-800 text-white rounded"
+                className="w-full mt-1 p-2 netflix-gray text-white rounded"
                 value={rating}
                 onChange={(e) => setRating(Number(e.target.value))}
                 min={0}

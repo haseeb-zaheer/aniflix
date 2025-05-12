@@ -1,76 +1,15 @@
-import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
-import { useSession, signOut } from 'next-auth/react';
+import { getSession } from 'next-auth/react';
 import AnimeCard from '@/components/AnimeCard';
 import AnimeEditModal from '@/components/AnimeEditModal';
 import EditProfileModal from '@/components/EditProfileModal';
+import { useState } from 'react';
+import { signOut } from 'next-auth/react';
 
-export default function Profile() {
-  const { data: session, status } = useSession();
-  const [profile, setProfile] = useState(null);
-  const [watchlist, setWatchlist] = useState([]);
-  const [favorites, setFavorites] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function Profile({ profile, watchlist, favorites }) {
   const [modalAnime, setModalAnime] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
-
-  const fetchData = async () => {
-    if (!session) return;
-
-    try {
-      setLoading(true);
-
-      const profileRes = await fetch('/api/profile');
-      const { profile: p } = await profileRes.json();
-      setProfile({
-        name: p.username,
-        avatar: p.profilePicture || '/profile.jpg',
-        banner: p.bannerImage || '/profile-banner.jpeg',
-        description: p.description || 'No description yet...',
-        totalWatched: p.totalAnimeWatched || 0
-      });
-
-      const watchlistRes = await fetch('/api/watchlist');
-      const listData = await watchlistRes.json();
-      setWatchlist(
-        listData.map(item => ({
-          id: item.animeId,
-          title: item.animeTitle,
-          episodes: item.totalEpisodes,
-          rating: item.userScore,
-          image: item.imageUrl
-        }))
-      );
-
-      const favRes = await fetch('/api/favorites');
-      const { favoritesList } = await favRes.json();
-      setFavorites(
-        favoritesList.map(item => ({
-          id: item.animeId,
-          title: item.title,
-          episodes: item.episodes,
-          rating: item.rating,
-          image: item.image
-        }))
-      );
-    } catch (err) {
-      console.error('Profile fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [session]);
-
-  if (status === 'loading' || loading) {
-    return (
-      <div className="netflix-dark min-h-screen flex items-center justify-center text-white text-xl">
-        Loading profile...
-      </div>
-    );
-  }
+  const [localProfile, setLocalProfile] = useState(profile);
 
   if (!profile) {
     return (
@@ -86,7 +25,7 @@ export default function Profile() {
 
       <div className="relative h-96 w-full">
         <img
-          src={profile.banner}
+          src={localProfile.banner}
           className="w-full h-full object-cover object-center"
           alt="Profile banner"
         />
@@ -95,11 +34,11 @@ export default function Profile() {
         <div className="absolute -bottom-20 left-0 w-full px-8 flex items-end justify-between">
           <div className="flex items-center space-x-6">
             <img
-              src={profile.avatar}
+              src={localProfile.avatar}
               className="w-32 h-32 rounded-full border-4 border-netflix-red shadow-2xl"
               alt="Profile avatar"
             />
-            <h2 className="text-white text-3xl font-bold mb-3">{profile.name}</h2>
+            <h2 className="text-white text-3xl font-bold mb-3">{localProfile.name}</h2>
           </div>
           <div className="flex gap-4 mb-4">
             <button
@@ -123,12 +62,12 @@ export default function Profile() {
           <div className="flex space-x-8 mb-8">
             <div className="netflix-gray p-6 rounded-lg flex-1">
               <h3 className="text-red-600 text-xl font-bold mb-2">Total Watched</h3>
-              <p className="text-white text-3xl">{profile.totalWatched}</p>
+              <p className="text-white text-3xl">{localProfile.totalWatched}</p>
             </div>
 
             <div className="netflix-gray p-6 rounded-lg flex-1">
               <h3 className="text-red-600 text-xl font-bold mb-2">About Me</h3>
-              <p className="text-gray-300">{profile.description}</p>
+              <p className="text-gray-300">{localProfile.description}</p>
               <button
                 className="mt-4 text-netflix-red hover:text-red-700 transition-colors"
                 onClick={() => setShowEditModal(true)}
@@ -147,7 +86,7 @@ export default function Profile() {
             <p className="text-gray-400">No anime in your list yet.</p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {watchlist.map(anime => (
+              {watchlist.map((anime) => (
                 <AnimeCard
                   key={anime.id}
                   anime={anime}
@@ -166,7 +105,7 @@ export default function Profile() {
             <p className="text-gray-400">You haven’t favorited any anime yet.</p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {favorites.map(anime => (
+              {favorites.map((anime) => (
                 <AnimeCard key={anime.id} anime={anime} />
               ))}
             </div>
@@ -178,36 +117,103 @@ export default function Profile() {
         <AnimeEditModal
           anime={modalAnime}
           onClose={() => setModalAnime(null)}
-          onSave={() => {
-            setModalAnime(null);
-            fetchData();
-          }}
+          onSave={() => setModalAnime(null)}
         />
       )}
 
       {showEditModal && (
         <EditProfileModal
-          currentDescription={profile.description}
+          currentDescription={localProfile.description}
           onClose={() => setShowEditModal(false)}
-          onSave={({ description, profilePictureUrl, bannerImageUrl }) => {
-            fetch('/api/profile', {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
+          onSave={async ({ description, profilePictureUrl, bannerImageUrl }) => {
+            try {
+              await fetch('/api/profile', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  description,
+                  profilePicture: profilePictureUrl,
+                  bannerImage: bannerImageUrl,
+                }),
+              });
+              setLocalProfile({
+                ...localProfile,
                 description,
-                profilePicture: profilePictureUrl,
-                bannerImage: bannerImageUrl
-              })
-            })
-              .then(res => res.json())
-              .then(() => {
-                fetchData();
-                setShowEditModal(false);
-              })
-              .catch(err => console.error('Failed to update profile:', err));
+                avatar: profilePictureUrl || localProfile.avatar,
+                banner: bannerImageUrl || localProfile.banner,
+              });
+              setShowEditModal(false);
+            } catch (err) {
+              console.error('Failed to update profile:', err);
+            }
           }}
         />
       )}
     </div>
   );
+}
+
+export async function getServerSideProps(context) {
+  const session = await getSession(context);
+
+  if (!session) {
+    return {
+      redirect: {
+        destination: '/auth',
+        permanent: false,
+      },
+    };
+  }
+
+  const fetchWithCookies = async (path) => {
+    const res = await fetch(`${process.env.NEXTAUTH_URL}${path}`, {
+      headers: {
+        cookie: context.req.headers.cookie || '',
+      },
+    });
+    if (!res.ok) 
+      throw new Error(`Failed to fetch ${path}`);
+    return await res.json();
+  };
+
+  try {
+    const { profile: p } = await fetchWithCookies('/api/profile');
+    const watchlistRes = await fetchWithCookies('/api/watchlist');
+    const favRes = await fetchWithCookies('/api/favorites');
+
+    return {
+      props: {
+        profile: {
+          name: p.username,
+          avatar: p.profilePicture || '/profile.jpg',
+          banner: p.bannerImage || '/profile-banner.jpeg',
+          description: p.description || 'No description yet...',
+          totalWatched: p.totalAnimeWatched || 0,
+        },
+        watchlist: watchlistRes.map((item) => ({
+          id: item.animeId,
+          title: item.animeTitle,
+          episodes: item.totalEpisodes,
+          rating: item.userScore,
+          image: item.imageUrl,
+        })),
+        favorites: favRes.favoritesList.map((item) => ({
+          id: item.animeId,
+          title: item.title,
+          episodes: item.episodes,
+          rating: item.rating,
+          image: item.image,
+        })),
+      },
+    };
+  } catch (err) {
+    console.error('Profile GSSP error:', err);
+    return {
+      props: {
+        profile: null,
+        watchlist: [],
+        favorites: [],
+      },
+    };
+  }
 }

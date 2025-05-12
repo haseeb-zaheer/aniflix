@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/router';
+// pages/anime/[id].js
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/router';
 import Navbar from '@/components/Navbar';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -12,19 +13,24 @@ const statusOptions = [
   { label: 'Dropped', value: 'dropped' }
 ];
 
-export default function AnimeDetail() {
+export default function AnimeDetail({ anime }) {
+  const { data: session } = useSession();
   const router = useRouter();
   const { id } = router.query;
-  const { data: session } = useSession();
 
-  const [anime, setAnime] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [status, setStatus] = useState('watching');
   const [watchedEpisodes, setWatchedEpisodes] = useState(0);
   const [userRating, setUserRating] = useState(0);
   const [progress, setProgress] = useState(0);
 
-  const mounted = useRef(false);
+  if (!anime) {
+    return (
+      <div className="netflix-dark min-h-screen flex items-center justify-center text-white">
+        <p>Anime not found.</p>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (!id || !session) return;
@@ -43,86 +49,25 @@ export default function AnimeDetail() {
   }, [id, session]);
 
   useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      return;
-    }
+    if (!session?.user?.id || !anime?.id) return;
 
-    const toggleFavorite = async () => {
-      if (!anime || !session) return;
-
+    const fetchUserData = async () => {
       try {
-        if (isFavorite) {
-          await fetch(`/api/favorites/${id}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: anime.title,
-              rating: anime.rating,
-              episodes: anime.totalEpisodes,
-              image: anime.image
-            })
-          });
-          toast.success('Added to favorites!');
-        } else {
-          await fetch(`/api/favorites/${id}`, { method: 'DELETE' });
-          toast.success('Removed from favorites!');
+        const res = await fetch(`/api/watchlist/${anime.id}`);
+        const { anime: userData } = await res.json();
+        if (userData) {
+          setStatus(userData.status || 'watching');
+          setWatchedEpisodes(userData.episodesWatched || 0);
+          setUserRating(userData.userScore || 0);
         }
       } catch (err) {
-        toast.error('Favorite toggle failed.');
+        toast.error('Failed to load user watchlist data.');
         console.error(err.message);
       }
     };
 
-    toggleFavorite();
-  }, [isFavorite]);
-
-  useEffect(() => {
-    if (!id) return;
-
-    const fetchAnimeAndUserData = async () => {
-      try {
-        const res = await fetch(`/api/anime/${id}`);
-        const data = await res.json();
-        const startDate = data.startDate;
-        const hasReleased =
-          startDate?.year && startDate?.month && startDate?.day
-            ? new Date(startDate.year, startDate.month - 1, startDate.day) <= new Date()
-            : false;
-
-        const baseAnime = {
-          id: data.id,
-          title: data.title?.english || data.title?.romaji || 'Unknown Title',
-          description: data.description?.replace(/<[^>]+>/g, '') || 'No description available.',
-          image: data.coverImage?.extraLarge || data.coverImage?.large,
-          banner: data.bannerImage,
-          episodes: data.episodes || 0,
-          genre: data.genres || [],
-          rating: data.averageScore ? (data.averageScore / 10).toFixed(1) : 'N/A',
-          totalEpisodes: data.episodes || 0,
-          releaseDate: startDate,
-          hasReleased
-        };
-
-        setAnime(baseAnime);
-
-        if (session?.user?.id) {
-          const watchlistRes = await fetch(`/api/watchlist/${id}`);
-          const { anime: userData } = await watchlistRes.json();
-          if (userData) {
-            setStatus(userData.status || 'watching');
-            setWatchedEpisodes(userData.episodesWatched || 0);
-            setUserRating(userData.userScore || 0);
-          }
-        }
-      } catch (err) {
-        toast.error('Error loading anime or user data.');
-        console.error(err.message);
-      }
-    };
-
-    fetchAnimeAndUserData();
-  }, [id, session]);
+    fetchUserData();
+  }, [anime?.id, session?.user?.id]);
 
   useEffect(() => {
     if (anime?.totalEpisodes > 0 && !isNaN(watchedEpisodes)) {
@@ -205,16 +150,6 @@ export default function AnimeDetail() {
     ? `${anime.releaseDate.day || '??'}/${anime.releaseDate.month || '??'}/${anime.releaseDate.year}`
     : 'Unannounced';
 
-  if (!anime) {
-    return (
-      <div className="netflix-dark min-h-screen flex items-center justify-center text-white">
-        <p>Loading anime details...</p>
-        <Toaster position="top-right" />
-      </div>
-    );
-  }
-  console.log(`banner: ${anime.banner}`)
-
   return (
     <div className="netflix-dark min-h-screen">
       <Navbar />
@@ -248,7 +183,35 @@ export default function AnimeDetail() {
 
           <div className="flex flex-wrap gap-4 mb-6">
             <button
-              onClick={() => setIsFavorite(prev => !prev)}
+              onClick={async () => {
+                if (!session || !anime) return;
+
+                try {
+                  if (!isFavorite) {
+                    await fetch(`/api/favorites/${anime.id}`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        title: anime.title,
+                        rating: anime.rating,
+                        episodes: anime.totalEpisodes,
+                        image: anime.image,
+                      }),
+                    });
+                    toast.success('Added to favorites!');
+                    setIsFavorite(true);
+                  } else {
+                    await fetch(`/api/favorites/${anime.id}`, {
+                      method: 'DELETE',
+                    });
+                    toast.success('Removed from favorites!');
+                    setIsFavorite(false);
+                  }
+                } catch (err) {
+                  toast.error('Favorite toggle failed.');
+                  console.error(err.message);
+                }
+              }}
               className={`flex items-center px-6 py-3 rounded ${
                 isFavorite ? 'netflix-red' : 'netflix-gray'
               } hover:bg-red-700 transition-colors`}
@@ -329,4 +292,103 @@ export default function AnimeDetail() {
       </div>
     </div>
   );
+}
+export async function getStaticPaths() {
+  const query = `
+    query {
+      Page(perPage: 10) {
+        media(sort: POPULARITY_DESC, type: ANIME, isAdult: false) {
+          id
+        }
+      }
+    }
+  `;
+
+  try {
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    const { data } = await res.json();
+
+    const paths = data.Page.media.map((anime) => ({
+      params: { id: anime.id.toString() },
+    }));
+
+    return { paths, fallback: 'blocking' };
+  } catch (err) {
+    console.error('Error in getStaticPaths:', err.message);
+    return { paths: [], fallback: 'blocking' };
+  }
+}
+
+export async function getStaticProps({ params }) {
+  const animeId = params.id;
+  const query = `
+    query ($id: Int) {
+      Media(id: $id, type: ANIME) {
+        id
+        title {
+          romaji
+          english
+        }
+        description
+        genres
+        episodes
+        averageScore
+        coverImage {
+          large
+          extraLarge
+        }
+        bannerImage
+        startDate {
+          year
+          month
+          day
+        }
+      }
+    }
+  `;
+
+  try {
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables: { id: parseInt(animeId) } }),
+    });
+
+    const { data } = await res.json();
+    if (!data || !data.Media) {
+      return { notFound: true };
+    }
+
+    const startDate = data.Media.startDate;
+    const hasReleased =
+      startDate?.year && startDate?.month && startDate?.day
+        ? new Date(startDate.year, startDate.month - 1, startDate.day) <= new Date()
+        : false;
+
+    const anime = {
+      id: data.Media.id,
+      title: data.Media.title.english || data.Media.title.romaji || 'Unknown Title',
+      description: data.Media.description?.replace(/<[^>]+>/g, '') || 'No description available.',
+      image: data.Media.coverImage.extraLarge || data.Media.coverImage.large,
+      banner: data.Media.bannerImage,
+      episodes: data.Media.episodes || 0,
+      genre: data.Media.genres || [],
+      rating: data.Media.averageScore ? (data.Media.averageScore / 10).toFixed(1) : 'N/A',
+      totalEpisodes: data.Media.episodes || 0,
+      releaseDate: data.Media.startDate,
+      hasReleased,
+    };
+
+    return {
+      props: { anime },
+      revalidate: 60,
+    };
+  } catch (err) {
+    console.error('Error in getStaticProps:', err.message);
+    return { notFound: true };
+  }
 }

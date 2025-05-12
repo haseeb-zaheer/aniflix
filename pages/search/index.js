@@ -1,42 +1,12 @@
-import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import AnimeCard from '@/components/AnimeCard';
 import AnimeEditModal from '@/components/AnimeEditModal';
+import { useRouter } from 'next/router';
+import { useState } from 'react';
 
-export default function SearchPage() {
+export default function SearchPage({ results, hasNextPage, q, currentPage }) {
   const router = useRouter();
-  const { q, page = '1' } = router.query;
-
-  const [results, setResults] = useState([]);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [modalAnime, setModalAnime] = useState(null);
-
-  const currentPage = parseInt(page);
-
-  useEffect(() => {
-    if (!q) return;
-
-    const fetchResults = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/anime/search?search=${encodeURIComponent(q)}&page=${currentPage}`);
-        const { results: fetchedResults, hasNextPage } = await res.json();
-
-        setResults(Array.isArray(fetchedResults) ? fetchedResults : []);
-        setHasNextPage(Boolean(hasNextPage));
-      } catch (err) {
-        console.error('Failed to fetch search results:', err);
-        setResults([]);
-        setHasNextPage(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchResults();
-  }, [q, currentPage]);
 
   const handlePageChange = (newPage) => {
     router.push(`/search?q=${encodeURIComponent(q)}&page=${newPage}`);
@@ -51,35 +21,31 @@ export default function SearchPage() {
           Search Results for: <span className="text-netflix-red">{q}</span>
         </h1>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <svg className="animate-spin h-6 w-6 text-white mx-auto mb-2" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-            </svg>
-            <p className="text-gray-400 text-lg">Loading...</p>
-          </div>
-        ) : results.length === 0 ? (
+        {results.length === 0 ? (
           <p className="text-gray-400 text-lg">No results found.</p>
         ) : (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-10">
-              {results.map(anime => (
+              {results.map((anime) => (
                 <AnimeCard
                   key={anime.id}
                   anime={{
                     id: anime.id,
                     title: anime.title.romaji,
-                    rating: anime.averageScore ? (anime.averageScore / 10).toFixed(1) : 'N/A',
+                    rating: anime.averageScore
+                      ? (anime.averageScore / 10).toFixed(1)
+                      : 'N/A',
                     episodes: anime.episodes ?? 'N/A',
-                    image: anime.coverImage?.large || '/placeholder.jpg'
-                  }}
-                  onOpenModal={() => setModalAnime({
-                    id: anime.id,
-                    title: anime.title.romaji,
                     image: anime.coverImage?.large || '/placeholder.jpg',
-                    episodes: anime.episodes ?? 'N/A'
-                  })}
+                  }}
+                  onOpenModal={() =>
+                    setModalAnime({
+                      id: anime.id,
+                      title: anime.title.romaji,
+                      image: anime.coverImage?.large || '/placeholder.jpg',
+                      episodes: anime.episodes ?? 'N/A',
+                    })
+                  }
                 />
               ))}
             </div>
@@ -92,7 +58,9 @@ export default function SearchPage() {
               >
                 ← Prev
               </button>
-              <span className="text-white font-semibold">Page {currentPage}</span>
+              <span className="text-white font-semibold">
+                Page {currentPage}
+              </span>
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-netflix-red transition-colors disabled:opacity-50"
@@ -114,4 +82,54 @@ export default function SearchPage() {
       </main>
     </div>
   );
+}
+
+export async function getServerSideProps(context) {
+  const q = context.query.q || '';
+  const page = parseInt(context.query.page || '1');
+
+  if (!q) {
+    return {
+      props: {
+        results: [],
+        hasNextPage: false,
+        q: '',
+        currentPage: page,
+      },
+    };
+  }
+
+  try {
+    const apiBase = process.env.NEXTAUTH_URL;
+    const res = await fetch(`${apiBase}/api/anime/search?search=${encodeURIComponent(q)}&page=${page}`, {
+      headers: {
+        cookie: context.req.headers.cookie || '', 
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch results from API: ${res.status}`);
+    }
+
+    const { results = [], hasNextPage = false } = await res.json();
+
+    return {
+      props: {
+        results,
+        hasNextPage,
+        q,
+        currentPage: page,
+      },
+    };
+  } catch (error) {
+    console.error('Search fetch error:', error);
+    return {
+      props: {
+        results: [],
+        hasNextPage: false,
+        q,
+        currentPage: page,
+      },
+    };
+  }
 }

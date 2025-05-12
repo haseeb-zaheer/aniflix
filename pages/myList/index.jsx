@@ -1,20 +1,21 @@
-import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
-import { useSession } from 'next-auth/react';
+import { getSession } from 'next-auth/react';
 import AnimeEditModal from '@/components/AnimeEditModal';
-import MyListItem from '@/components/MyListItem'; 
+import MyListItem from '@/components/MyListItem';
+import { useState } from 'react';
 
-export default function MyList() {
-  const { data: session } = useSession();
-  const [animeList, setAnimeList] = useState([]);
+export default function MyList({ animeList }) {
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [isLoading, setIsLoading] = useState(true);
   const [modalAnime, setModalAnime] = useState(null);
+  const [list, setList] = useState(animeList);
 
-  const fetchWatchlist = async () => {
-    if (!session) return;
+  const filteredList =
+    selectedStatus === 'all'
+      ? list
+      : list.filter((anime) => anime.status === selectedStatus);
+
+  const refreshList = async () => {
     try {
-      setIsLoading(true);
       const res = await fetch('/api/watchlist');
       const data = await res.json();
       const formatted = data.map((anime) => ({
@@ -26,22 +27,11 @@ export default function MyList() {
         image: anime.imageUrl,
         status: anime.status,
       }));
-      setAnimeList(formatted);
+      setList(formatted);
     } catch (err) {
-      console.error('Error loading watchlist:', err.message);
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to reload watchlist:', err);
     }
   };
-
-  useEffect(() => {
-    fetchWatchlist();
-  }, [session]);
-
-  const filteredList =
-    selectedStatus === 'all'
-      ? animeList
-      : animeList.filter((anime) => anime.status === selectedStatus);
 
   return (
     <div className="netflix-dark min-h-screen">
@@ -65,15 +55,7 @@ export default function MyList() {
           ))}
         </div>
 
-        {isLoading ? (
-          <div className="flex justify-center items-center py-24">
-            <svg className="animate-spin h-8 w-8 text-red-600" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-            </svg>
-            <span className="text-gray-400 ml-4 text-lg">Loading your watchlist...</span>
-          </div>
-        ) : filteredList.length === 0 ? (
+        {filteredList.length === 0 ? (
           <p className="text-gray-400 text-center py-12">No anime in this list yet.</p>
         ) : (
           <div className="grid grid-cols-1 gap-6">
@@ -90,10 +72,58 @@ export default function MyList() {
           onClose={() => setModalAnime(null)}
           onSave={() => {
             setModalAnime(null);
-            fetchWatchlist();
+            refreshList();
           }}
         />
       )}
     </div>
   );
+}
+
+export async function getServerSideProps(context) {
+  const session = await getSession(context);
+
+  if (!session) {
+    return {
+      redirect: {
+        destination: '/auth',
+        permanent: false,
+      },
+    };
+  }
+
+  try {
+    const res = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/watchlist`, {
+      headers: {
+        cookie: context.req.headers.cookie || '',
+      },
+    });
+
+    if (!res.ok)
+      throw new Error('Failed to fetch watchlist');
+
+    const data = await res.json();
+    const formatted = data.map((anime) => ({
+      id: anime.animeId,
+      title: anime.animeTitle,
+      episodes: Number(anime.totalEpisodes),
+      watched: Number(anime.episodesWatched),
+      rating: anime.userScore,
+      image: anime.imageUrl,
+      status: anime.status,
+    }));
+
+    return {
+      props: {
+        animeList: formatted,
+      },
+    };
+  } catch (err) {
+    console.error('GSSP watchlist error:', err);
+    return {
+      props: {
+        animeList: [],
+      },
+    };
+  }
 }
